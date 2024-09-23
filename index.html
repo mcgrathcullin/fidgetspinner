@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fidget Spinner Warehouse Simulator</title>
+    <title>Fidget Spinner Warehouse Simulator - Mob Deal Edition</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -76,6 +76,33 @@
             text-align: center;
             display: none;
         }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .modal-buttons {
+            margin-top: 20px;
+        }
+        .modal-buttons button {
+            margin: 0 10px;
+        }
     </style>
 </head>
 <body>
@@ -110,6 +137,16 @@
         <div id="research" class="research"></div>
     </div>
 
+    <div id="mobDealModal" class="modal">
+        <div class="modal-content">
+            <p>You are almost out of money and your business is going illiquid. Make a deal with the mob?</p>
+            <div class="modal-buttons">
+                <button onclick="acceptMobDeal()">YES</button>
+                <button onclick="rejectMobDeal()">NO</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let gameState = {
             money: 600,
@@ -117,6 +154,7 @@
             employees: 0,
             demand: 100,
             productionOn: true,
+            mobDealAccepted: false,
             spinners: {
                 basic: { count: 0, price: 2, productionCost: 1, unlocked: true },
                 premium: { count: 0, price: 5, productionCost: 3, unlocked: false },
@@ -138,6 +176,7 @@
             }
             updateDemand();
             updateDisplay();
+            checkMobDeal();
         }
 
         function produceSpinners() {
@@ -162,7 +201,11 @@
         function sellAllSpinners(type) {
             if (gameState.spinners[type].count > 0) {
                 const sold = gameState.spinners[type].count;
-                const earned = Math.round(sold * gameState.spinners[type].price * (gameState.demand / 100));
+                let price = gameState.spinners[type].price;
+                if (gameState.mobDealAccepted) {
+                    price -= 0.5;
+                }
+                const earned = Math.round(sold * price * (gameState.demand / 100));
                 gameState.money += earned;
                 gameState.spinners[type].count = 0;
                 showSaleMessage(`Sold all ${sold} ${type} spinners for $${earned}!`);
@@ -228,6 +271,25 @@
             document.getElementById('productionToggle').textContent = `Production: ${gameState.productionOn ? 'ON' : 'OFF'}`;
         }
 
+        function checkMobDeal() {
+            if (gameState.money <= -50 && !gameState.mobDealAccepted) {
+                document.getElementById('mobDealModal').style.display = 'block';
+            }
+        }
+
+        function acceptMobDeal() {
+            gameState.money += 350;
+            gameState.mobDealAccepted = true;
+            document.getElementById('mobDealModal').style.display = 'none';
+            showSaleMessage("You've made a deal with the mob. Your spinners are now worth $0.50 less each.");
+            updateDisplay();
+        }
+
+        function rejectMobDeal() {
+            document.getElementById('mobDealModal').style.display = 'none';
+            showSaleMessage("You've rejected the mob's offer. Good luck recovering your business!");
+        }
+
         function updateDisplay() {
             document.getElementById('money').textContent = Math.floor(gameState.money);
             document.getElementById('machines').textContent = gameState.machines;
@@ -239,11 +301,15 @@
             let spinnerInventory = '';
             for (const type in gameState.spinners) {
                 if (gameState.spinners[type].unlocked) {
+                    let price = gameState.spinners[type].price;
+                    if (gameState.mobDealAccepted) {
+                        price -= 0.5;
+                    }
                     spinnerInventory += `
                         <div class="spinner-type">
                             <h3>${type.charAt(0).toUpperCase() + type.slice(1)} Spinner</h3>
                             <p>Inventory: ${gameState.spinners[type].count}</p>
-                            <p>Base Price: $${gameState.spinners[type].price}</p>
+                            <p>Base Price: $${price.toFixed(2)}</p>
                             <button onclick="sellAllSpinners('${type}')">Sell All ${type}</button>
                         </div>
                     `;
