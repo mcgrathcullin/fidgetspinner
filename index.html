@@ -127,35 +127,31 @@
         .tooltip:hover .tooltiptext {
             visibility: visible;
             opacity: 1;
-        #complimentButton {
-            background-color: #e74c3c;
-            color: white;
-            padding: 10px 20px;
-            font-size: 18px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-bottom: 20px;
         }
-        #complimentButton:hover {
-            background-color: #c0392b;
-        }
-        #complimentMessage {
-            background-color: #f39c12;
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            text-align: center;
+        #complimentModal {
             display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        #complimentModal .modal-content {
+            background-color: #fff;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 400px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
     <div class="game-container">
         <h1>Fidget Spinner Warehouse Simulator</h1>
-        <button id="complimentButton">Get Compliment</button>
-        <div id="complimentMessage"></div>
         <div class="stats">
             <div class="stat">Money: $<span id="money">600</span></div>
             <div class="stat">Machines: <span id="machines">0</span></div>
@@ -172,6 +168,7 @@
         <div class="actions">
             <button id="buyMachine">Buy Machine ($250)</button>
             <button id="hireEmployee">Hire Employee ($50)</button>
+            <button id="complimentButton">Get Compliment</button>
         </div>
 
         <h2>Spinner Inventory</h2>
@@ -182,6 +179,13 @@
 
         <h2>Research</h2>
         <div id="research" class="research"></div>
+    </div>
+
+    <!-- Compliment Modal -->
+    <div id="complimentModal" class="modal">
+        <div class="modal-content">
+            <p id="complimentMessage"></p>
+        </div>
     </div>
 
     <div id="mobDealModal" class="modal">
@@ -447,7 +451,7 @@
             }
         }
 
-       function getRandomCompliment() {
+        function getRandomCompliment() {
             const compliments = [
                 "You're doing a great job managing your spinner empire!",
                 "Your business acumen is truly impressive!",
@@ -466,9 +470,9 @@
         function showCompliment() {
             const complimentMessage = document.getElementById('complimentMessage');
             complimentMessage.textContent = getRandomCompliment();
-            complimentMessage.style.display = 'block';
+            document.getElementById('complimentModal').style.display = 'block';
             setTimeout(() => {
-                complimentMessage.style.display = 'none';
+                document.getElementById('complimentModal').style.display = 'none';
             }, 5000);
         }
         
