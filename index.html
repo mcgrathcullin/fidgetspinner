@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fidget Spinner Warehouse Simulator - Mob Deal Edition</title>
+    <title>Fidget Spinner Warehouse Simulator</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -103,6 +103,31 @@
         .modal-buttons button {
             margin: 0 10px;
         }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
@@ -147,6 +172,15 @@
         </div>
     </div>
 
+    <div id="gameOverModal" class="modal">
+        <div class="modal-content">
+            <p id="gameOverMessage"></p>
+            <div class="modal-buttons">
+                <button onclick="restartGame()">Restart Game</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let gameState = {
             money: 600,
@@ -177,6 +211,7 @@
             updateDemand();
             updateDisplay();
             checkMobDeal();
+            checkGameOver();
         }
 
         function produceSpinners() {
@@ -290,6 +325,20 @@
             showSaleMessage("You've rejected the mob's offer. Good luck recovering your business!");
         }
 
+        function checkGameOver() {
+            if (gameState.money <= -200) {
+                showSaleMessage("Your business is going to run out of money.... make sure you have enough cash...");
+            }
+            if (gameState.money <= -500) {
+                document.getElementById('gameOverMessage').textContent = "Game over. Everyone hates you.";
+                document.getElementById('gameOverModal').style.display = 'block';
+            }
+        }
+
+        function restartGame() {
+            location.reload();
+        }
+
         function updateDisplay() {
             document.getElementById('money').textContent = Math.floor(gameState.money);
             document.getElementById('machines').textContent = gameState.machines;
@@ -307,7 +356,9 @@
                     }
                     spinnerInventory += `
                         <div class="spinner-type">
-                            <h3>${type.charAt(0).toUpperCase() + type.slice(1)} Spinner</h3>
+                            <h3 class="tooltip">${type.charAt(0).toUpperCase() + type.slice(1)} Spinner
+                                <span class="tooltiptext">${getSpinnerTooltip(type)}</span>
+                            </h3>
                             <p>Inventory: ${gameState.spinners[type].count}</p>
                             <p>Base Price: $${price.toFixed(2)}</p>
                             <button onclick="sellAllSpinners('${type}')">Sell All ${type}</button>
@@ -321,10 +372,12 @@
             for (const type in gameState.upgrades) {
                 upgradesHtml += `
                     <div class="upgrade-item">
-                        <h3>${type.charAt(0).toUpperCase() + type.slice(1)}</h3>
+                        <h3 class="tooltip">${type.charAt(0).toUpperCase() + type.slice(1)}
+                            <span class="tooltiptext">${getUpgradeTooltip(type)}</span>
+                        </h3>
                         <p>Level: ${gameState.upgrades[type].level}</p>
                         <p>Cost: $${gameState.upgrades[type].cost}</p>
-                        <button onclick="upgrade('${type}')" ${gameState.money < gameState.upgrades[type].cost ? 'disabled' : ''}>Upgrade</button>
+<button onclick="upgrade('${type}')" ${gameState.money < gameState.upgrades[type].cost ? 'disabled' : ''}>Upgrade</button>
                     </div>
                 `;
             }
@@ -335,7 +388,9 @@
                 if (!gameState.research[type].completed) {
                     researchHtml += `
                         <div class="research-item">
-                            <h3>${type.charAt(0).toUpperCase() + type.slice(1)} Spinner</h3>
+                            <h3 class="tooltip">${type.charAt(0).toUpperCase() + type.slice(1)} Spinner
+                                <span class="tooltiptext">${getResearchTooltip(type)}</span>
+                            </h3>
                             <p>Progress: ${Math.floor(gameState.research[type].progress)} / ${gameState.research[type].cost}</p>
                             <button onclick="research('${type}')">Research ($10)</button>
                         </div>
@@ -343,6 +398,31 @@
                 }
             }
             document.getElementById('research').innerHTML = researchHtml;
+        }
+
+        function getSpinnerTooltip(type) {
+            switch(type) {
+                case 'basic': return 'Basic spinner - Cheap and cheerful!';
+                case 'premium': return 'Premium spinner - Better quality, higher price!';
+                case 'luxury': return 'Luxury spinner - Top of the line, maximum profit!';
+                default: return '';
+            }
+        }
+
+        function getUpgradeTooltip(type) {
+            switch(type) {
+                case 'efficiency': return 'Increases production speed';
+                case 'marketing': return 'Increases market demand';
+                default: return '';
+            }
+        }
+
+        function getResearchTooltip(type) {
+            switch(type) {
+                case 'premium': return 'Unlock premium spinners for production';
+                case 'luxury': return 'Unlock luxury spinners for production';
+                default: return '';
+            }
         }
 
         document.addEventListener('DOMContentLoaded', function() {
