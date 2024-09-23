@@ -3,42 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fidget Spinner Warehouse Simulator</title>
+    <title>Enhanced Fidget Spinner Warehouse Simulator</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
             margin: 0;
-            background-color: #f0f0f0;
+            padding: 20px;
         }
         .game-container {
+            max-width: 800px;
+            margin: 0 auto;
             background-color: #fff;
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
         }
-        h1 {
-            text-align: center;
-            color: #333;
+        h1, h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
         }
-        .stats {
+        .stats, .actions, .upgrades, .research, .spinner-types {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
             margin-bottom: 20px;
         }
-        .stat {
-            background-color: #f9f9f9;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        .actions {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
+        .stat, .action-btn, .upgrade-item, .research-item, .spinner-type {
+            background-color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         button {
             padding: 10px;
@@ -47,90 +45,214 @@
             cursor: pointer;
             font-size: 16px;
             transition: background-color 0.3s;
+            background-color: #3498db;
+            color: white;
         }
-        button:hover {
-            opacity: 0.9;
+        button:hover { background-color: #2980b9; }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
-        #buyMachine { background-color: #4CAF50; color: white; }
-        #hireEmployee { background-color: #2196F3; color: white; }
-        #sellSpinners { background-color: #FF9800; color: white; }
+        .production-toggle {
+            background-color: #f39c12;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .production-costs {
+            background-color: #e74c3c;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
     <div class="game-container">
         <h1>Fidget Spinner Warehouse Simulator</h1>
+        
         <div class="stats">
             <div class="stat">Money: $<span id="money">600</span></div>
             <div class="stat">Machines: <span id="machines">0</span></div>
             <div class="stat">Employees: <span id="employees">0</span></div>
-            <div class="stat">Spinners: <span id="spinners">0</span></div>
+            <div class="stat">Market Demand: <span id="demand">100</span>%</div>
         </div>
+
+        <div id="productionToggle" class="production-toggle">Production: ON</div>
+        <div id="productionCosts" class="production-costs">Production Costs: $0 / second</div>
+
+        <h2>Actions</h2>
         <div class="actions">
-            <button id="buyMachine">Buy Machine ($250)</button>
-            <button id="hireEmployee">Hire Employee ($50)</button>
-            <button id="sellSpinners">Sell All Spinners ($2 each)</button>
+            <button id="buyMachine" class="action-btn">Buy Machine ($250)</button>
+            <button id="hireEmployee" class="action-btn">Hire Employee ($50)</button>
         </div>
+
+        <h2>Spinner Inventory</h2>
+        <div id="spinner-inventory" class="spinner-types"></div>
+
+        <h2>Upgrades</h2>
+        <div id="upgrades" class="upgrades"></div>
+
+        <h2>Research</h2>
+        <div id="research" class="research"></div>
     </div>
 
     <script>
-        // Game state
         let gameState = {
             money: 600,
             machines: 0,
             employees: 0,
-            spinners: 0
+            demand: 100,
+            productionOn: true,
+            spinners: {
+                basic: { count: 0, price: 2, productionCost: 1, unlocked: true },
+                premium: { count: 0, price: 5, productionCost: 3, unlocked: false },
+                luxury: { count: 0, price: 10, productionCost: 6, unlocked: false }
+            },
+            upgrades: {
+                efficiency: { level: 0, cost: 100, effect: 0.1 },
+                marketing: { level: 0, cost: 150, effect: 0.05 }
+            },
+            research: {
+                premium: { progress: 0, cost: 1000, completed: false },
+                luxury: { progress: 0, cost: 5000, completed: false }
+            }
         };
 
-        // Game loop
         function gameLoop() {
-            // Produce spinners (doubled production speed)
-            gameState.spinners += Math.min(gameState.machines, gameState.employees) * 2;
+            if (gameState.productionOn) {
+                produceSpinners();
+            }
+            updateDemand();
             updateDisplay();
         }
 
-        // Buy machine
+        function produceSpinners() {
+            const productionCapacity = Math.min(gameState.machines, gameState.employees) * (1 + gameState.upgrades.efficiency.level * gameState.upgrades.efficiency.effect);
+            let totalCost = 0;
+            for (const type in gameState.spinners) {
+                if (gameState.spinners[type].unlocked) {
+                    const produced = Math.floor(productionCapacity / Object.keys(gameState.spinners).filter(t => gameState.spinners[t].unlocked).length);
+                    gameState.spinners[type].count += produced;
+                    const cost = produced * gameState.spinners[type].productionCost;
+                    totalCost += cost;
+                }
+            }
+            gameState.money -= totalCost;
+            document.getElementById('productionCosts').textContent = `Production Costs: $${totalCost.toFixed(2)} / second`;
+        }
+
+        function updateDemand() {
+            gameState.demand = Math.max(50, Math.min(150, gameState.demand + (Math.random() - 0.5) * 10 + gameState.upgrades.marketing.level * gameState.upgrades.marketing.effect));
+        }
+
+        function sellSpinners(type) {
+            const sold = Math.min(gameState.spinners[type].count, Math.floor(Math.random() * 10 + 1));
+            gameState.money += sold * gameState.spinners[type].price * (gameState.demand / 100);
+            gameState.spinners[type].count -= sold;
+            updateDisplay();
+        }
+
         function buyMachine() {
             if (gameState.money >= 250) {
                 gameState.money -= 250;
                 gameState.machines++;
                 updateDisplay();
-            } else {
-                alert("Not enough money to buy a machine!");
             }
         }
 
-        // Hire employee
         function hireEmployee() {
             if (gameState.money >= 50) {
                 gameState.money -= 50;
                 gameState.employees++;
                 updateDisplay();
-            } else {
-                alert("Not enough money to hire an employee!");
             }
         }
 
-        // Sell spinners
-        function sellSpinners() {
-            gameState.money += gameState.spinners * 2;
-            gameState.spinners = 0;
-            updateDisplay();
+        function upgrade(type) {
+            if (gameState.money >= gameState.upgrades[type].cost) {
+                gameState.money -= gameState.upgrades[type].cost;
+                gameState.upgrades[type].level++;
+                gameState.upgrades[type].cost = Math.floor(gameState.upgrades[type].cost * 1.5);
+                updateDisplay();
+            }
         }
 
-        // Update display
+        function research(type) {
+            if (gameState.money >= 10) {
+                gameState.money -= 10;
+                gameState.research[type].progress += Math.random() * 5;
+                if (gameState.research[type].progress >= gameState.research[type].cost) {
+                    gameState.research[type].completed = true;
+                    gameState.spinners[type].unlocked = true;
+                }
+                updateDisplay();
+            }
+        }
+
+        function toggleProduction() {
+            gameState.productionOn = !gameState.productionOn;
+            document.getElementById('productionToggle').textContent = `Production: ${gameState.productionOn ? 'ON' : 'OFF'}`;
+        }
+
         function updateDisplay() {
-            document.getElementById('money').textContent = gameState.money;
+            document.getElementById('money').textContent = Math.floor(gameState.money);
             document.getElementById('machines').textContent = gameState.machines;
             document.getElementById('employees').textContent = gameState.employees;
-            document.getElementById('spinners').textContent = gameState.spinners;
+            document.getElementById('demand').textContent = Math.floor(gameState.demand);
+            document.getElementById('productionToggle').textContent = `Production: ${gameState.productionOn ? 'ON' : 'OFF'}`;
+
+            let spinnerInventory = '';
+            for (const type in gameState.spinners) {
+                if (gameState.spinners[type].unlocked) {
+                    spinnerInventory += `
+                        <div class="spinner-type">
+                            <h3>${type.charAt(0).toUpperCase() + type.slice(1)} Spinner</h3>
+                            <p>Inventory: ${gameState.spinners[type].count}</p>
+                            <p>Price: $${gameState.spinners[type].price}</p>
+                            <button onclick="sellSpinners('${type}')">Sell</button>
+                        </div>
+                    `;
+                }
+            }
+            document.getElementById('spinner-inventory').innerHTML = spinnerInventory;
+
+            let upgradesHtml = '';
+            for (const type in gameState.upgrades) {
+                upgradesHtml += `
+                    <div class="upgrade-item">
+                        <h3>${type.charAt(0).toUpperCase() + type.slice(1)}</h3>
+                        <p>Level: ${gameState.upgrades[type].level}</p>
+                        <p>Cost: $${gameState.upgrades[type].cost}</p>
+                        <button onclick="upgrade('${type}')" ${gameState.money < gameState.upgrades[type].cost ? 'disabled' : ''}>Upgrade</button>
+                    </div>
+                `;
+            }
+            document.getElementById('upgrades').innerHTML = upgradesHtml;
+
+            let researchHtml = '';
+            for (const type in gameState.research) {
+                if (!gameState.research[type].completed) {
+                    researchHtml += `
+                        <div class="research-item">
+                            <h3>${type.charAt(0).toUpperCase() + type.slice(1)} Spinner</h3>
+                            <p>Progress: ${Math.floor(gameState.research[type].progress)} / ${gameState.research[type].cost}</p>
+                            <button onclick="research('${type}')">Research ($10)</button>
+                        </div>
+                    `;
+                }
+            }
+            document.getElementById('research').innerHTML = researchHtml;
         }
 
-        // Event listeners
         document.getElementById('buyMachine').addEventListener('click', buyMachine);
         document.getElementById('hireEmployee').addEventListener('click', hireEmployee);
-        document.getElementById('sellSpinners').addEventListener('click', sellSpinners);
+        document.getElementById('productionToggle').addEventListener('click', toggleProduction);
 
-        // Start game
         setInterval(gameLoop, 1000);
         updateDisplay();
     </script>
