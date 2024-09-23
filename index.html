@@ -26,17 +26,23 @@
             border-bottom: 2px solid #ecf0f1;
             padding-bottom: 10px;
         }
-        .stats, .actions, .upgrades, .research, .spinner-types {
+        .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
             margin-bottom: 20px;
         }
-        .stat, .action-btn, .upgrade-item, .research-item, .spinner-type {
+        .stat {
             background-color: #ecf0f1;
             padding: 15px;
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .actions, .upgrades, .research, .spinner-types {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
         }
         button {
             padding: 10px;
@@ -45,22 +51,31 @@
             cursor: pointer;
             font-size: 16px;
             transition: background-color 0.3s;
+            background-color: #3498db;
+            color: white;
         }
-        .action-btn { background-color: #3498db; color: white; }
-        .sell-btn { background-color: #e74c3c; color: white; }
-        .upgrade-btn { background-color: #2ecc71; color: white; }
-        .research-btn { background-color: #9b59b6; color: white; }
-        button:hover { opacity: 0.9; }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        button:hover { background-color: #2980b9; }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
         #productionToggle, #productionCosts, #marketRate {
             margin-bottom: 15px;
             padding: 10px;
             border-radius: 5px;
             text-align: center;
+            background-color: #2ecc71;
+            color: white;
         }
-        #productionToggle { background-color: #f39c12; color: white; }
-        #productionCosts { background-color: #e74c3c; color: white; }
-        #marketRate { background-color: #27ae60; color: white; }
+        #saleMessage {
+            background-color: #3498db;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            text-align: center;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -77,11 +92,12 @@
         <div id="productionToggle">Production: ON</div>
         <div id="productionCosts">Production Costs: $0 / second</div>
         <div id="marketRate">Market Rate: 100%</div>
+        <div id="saleMessage"></div>
 
         <h2>Actions</h2>
         <div class="actions">
-            <button id="buyMachine" class="action-btn">Buy Machine ($250)</button>
-            <button id="hireEmployee" class="action-btn">Hire Employee ($50)</button>
+            <button id="buyMachine">Buy Machine ($250)</button>
+            <button id="hireEmployee">Hire Employee ($50)</button>
         </div>
 
         <h2>Spinner Inventory</h2>
@@ -135,8 +151,8 @@
                     totalCost += cost;
                 }
             }
-            gameState.money -= totalCost;
-            document.getElementById('productionCosts').textContent = `Production Costs: $${totalCost.toFixed(2)} / second`;
+            gameState.money -= Math.round(totalCost);
+            document.getElementById('productionCosts').textContent = `Production Costs: $${Math.round(totalCost)} / second`;
         }
 
         function updateDemand() {
@@ -146,14 +162,23 @@
         function sellAllSpinners(type) {
             if (gameState.spinners[type].count > 0) {
                 const sold = gameState.spinners[type].count;
-                const earned = sold * gameState.spinners[type].price * (gameState.demand / 100);
+                const earned = Math.round(sold * gameState.spinners[type].price * (gameState.demand / 100));
                 gameState.money += earned;
                 gameState.spinners[type].count = 0;
-                alert(`Sold all ${sold} ${type} spinners for $${earned.toFixed(2)}!`);
+                showSaleMessage(`Sold all ${sold} ${type} spinners for $${earned}!`);
                 updateDisplay();
             } else {
-                alert(`No ${type} spinners to sell!`);
+                showSaleMessage(`No ${type} spinners to sell!`);
             }
+        }
+
+        function showSaleMessage(message) {
+            const saleMessage = document.getElementById('saleMessage');
+            saleMessage.textContent = message;
+            saleMessage.style.display = 'block';
+            setTimeout(() => {
+                saleMessage.style.display = 'none';
+            }, 3000);
         }
 
         function buyMachine() {
@@ -162,7 +187,7 @@
                 gameState.machines++;
                 updateDisplay();
             } else {
-                alert("Not enough money to buy a machine!");
+                showSaleMessage("Not enough money to buy a machine!");
             }
         }
 
@@ -172,7 +197,7 @@
                 gameState.employees++;
                 updateDisplay();
             } else {
-                alert("Not enough money to hire an employee!");
+                showSaleMessage("Not enough money to hire an employee!");
             }
         }
 
@@ -192,6 +217,7 @@
                 if (gameState.research[type].progress >= gameState.research[type].cost) {
                     gameState.research[type].completed = true;
                     gameState.spinners[type].unlocked = true;
+                    showSaleMessage(`${type.charAt(0).toUpperCase() + type.slice(1)} spinner unlocked!`);
                 }
                 updateDisplay();
             }
@@ -218,7 +244,7 @@
                             <h3>${type.charAt(0).toUpperCase() + type.slice(1)} Spinner</h3>
                             <p>Inventory: ${gameState.spinners[type].count}</p>
                             <p>Base Price: $${gameState.spinners[type].price}</p>
-                            <button onclick="sellAllSpinners('${type}')" class="sell-btn">Sell All ${type}</button>
+                            <button onclick="sellAllSpinners('${type}')">Sell All ${type}</button>
                         </div>
                     `;
                 }
@@ -232,7 +258,7 @@
                         <h3>${type.charAt(0).toUpperCase() + type.slice(1)}</h3>
                         <p>Level: ${gameState.upgrades[type].level}</p>
                         <p>Cost: $${gameState.upgrades[type].cost}</p>
-                        <button onclick="upgrade('${type}')" class="upgrade-btn" ${gameState.money < gameState.upgrades[type].cost ? 'disabled' : ''}>Upgrade</button>
+                        <button onclick="upgrade('${type}')" ${gameState.money < gameState.upgrades[type].cost ? 'disabled' : ''}>Upgrade</button>
                     </div>
                 `;
             }
@@ -245,7 +271,7 @@
                         <div class="research-item">
                             <h3>${type.charAt(0).toUpperCase() + type.slice(1)} Spinner</h3>
                             <p>Progress: ${Math.floor(gameState.research[type].progress)} / ${gameState.research[type].cost}</p>
-                            <button onclick="research('${type}')" class="research-btn">Research ($10)</button>
+                            <button onclick="research('${type}')">Research ($10)</button>
                         </div>
                     `;
                 }
@@ -253,12 +279,14 @@
             document.getElementById('research').innerHTML = researchHtml;
         }
 
-        document.getElementById('buyMachine').addEventListener('click', buyMachine);
-        document.getElementById('hireEmployee').addEventListener('click', hireEmployee);
-        document.getElementById('productionToggle').addEventListener('click', toggleProduction);
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('buyMachine').addEventListener('click', buyMachine);
+            document.getElementById('hireEmployee').addEventListener('click', hireEmployee);
+            document.getElementById('productionToggle').addEventListener('click', toggleProduction);
 
-        setInterval(gameLoop, 1000);
-        updateDisplay();
+            setInterval(gameLoop, 1000);
+            updateDisplay();
+        });
     </script>
 </body>
 </html>
