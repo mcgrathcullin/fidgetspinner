@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fidget Spinner Warehouse Simulator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .game-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .stat {
+            background-color: #f9f9f9;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        button {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        #buyMachine { background-color: #4CAF50; color: white; }
+        #hireEmployee { background-color: #2196F3; color: white; }
+        #sellSpinners { background-color: #FF9800; color: white; }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Fidget Spinner Warehouse Simulator</h1>
+        <div class="stats">
+            <div class="stat">Money: $<span id="money">600</span></div>
+            <div class="stat">Machines: <span id="machines">0</span></div>
+            <div class="stat">Employees: <span id="employees">0</span></div>
+            <div class="stat">Spinners: <span id="spinners">0</span></div>
+        </div>
+        <div class="actions">
+            <button id="buyMachine">Buy Machine ($250)</button>
+            <button id="hireEmployee">Hire Employee ($50)</button>
+            <button id="sellSpinners">Sell All Spinners ($2 each)</button>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        let gameState = {
+            money: 600,
+            machines: 0,
+            employees: 0,
+            spinners: 0
+        };
+
+        // Game loop
+        function gameLoop() {
+            // Produce spinners (doubled production speed)
+            gameState.spinners += Math.min(gameState.machines, gameState.employees) * 2;
+            updateDisplay();
+        }
+
+        // Buy machine
+        function buyMachine() {
+            if (gameState.money >= 250) {
+                gameState.money -= 250;
+                gameState.machines++;
+                updateDisplay();
+            } else {
+                alert("Not enough money to buy a machine!");
+            }
+        }
+
+        // Hire employee
+        function hireEmployee() {
+            if (gameState.money >= 50) {
+                gameState.money -= 50;
+                gameState.employees++;
+                updateDisplay();
+            } else {
+                alert("Not enough money to hire an employee!");
+            }
+        }
+
+        // Sell spinners
+        function sellSpinners() {
+            gameState.money += gameState.spinners * 2;
+            gameState.spinners = 0;
+            updateDisplay();
+        }
+
+        // Update display
+        function updateDisplay() {
+            document.getElementById('money').textContent = gameState.money;
+            document.getElementById('machines').textContent = gameState.machines;
+            document.getElementById('employees').textContent = gameState.employees;
+            document.getElementById('spinners').textContent = gameState.spinners;
+        }
+
+        // Event listeners
+        document.getElementById('buyMachine').addEventListener('click', buyMachine);
+        document.getElementById('hireEmployee').addEventListener('click', hireEmployee);
+        document.getElementById('sellSpinners').addEventListener('click', sellSpinners);
+
+        // Start game
+        setInterval(gameLoop, 1000);
+        updateDisplay();
+    </script>
+</body>
+</html>
